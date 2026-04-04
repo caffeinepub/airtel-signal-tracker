@@ -13,6 +13,7 @@ import { GuidancePage } from "./pages/GuidancePage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { HomePage } from "./pages/HomePage";
 import { MapPage } from "./pages/MapPage";
+import { SafetyPage } from "./pages/SafetyPage";
 import { TroubleshootingPage } from "./pages/TroubleshootingPage";
 import { UssdPage } from "./pages/UssdPage";
 import { WifiScannerPage } from "./pages/WifiScannerPage";
@@ -43,7 +44,8 @@ type TabId =
   | "history"
   | "wifi"
   | "ussd"
-  | "help";
+  | "help"
+  | "safety";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("home");
@@ -354,6 +356,13 @@ export default function App() {
             {activeTab === "wifi" && <WifiScannerPage isOnline={isOnline} />}
             {activeTab === "ussd" && <UssdPage />}
             {activeTab === "help" && <TroubleshootingPage />}
+            {activeTab === "safety" && (
+              <SafetyPage
+                rssi={rssi}
+                userPosition={userPosition}
+                isOnline={isOnline}
+              />
+            )}
           </PageWrapper>
         </AnimatePresence>
       </main>
@@ -407,6 +416,13 @@ export default function App() {
               className="hover:text-white transition-colors"
             >
               USSD Codes
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("safety")}
+              className="hover:text-white transition-colors"
+            >
+              Safety
             </button>
             <span>Optimized for Mobile</span>
           </div>

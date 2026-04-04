@@ -8,12 +8,14 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Tower } from "../backend.d";
+import { AntennaAlignmentAssistant } from "../components/AntennaAlignmentAssistant";
 import { AntennaAngleCalculator } from "../components/AntennaAngleCalculator";
 import { AntennaGainComparator } from "../components/AntennaGainComparator";
 import { AntennaWizard } from "../components/AntennaWizard";
 import { ApnResetGuide } from "../components/ApnResetGuide";
 import { AzimuthElevationPlotter } from "../components/AzimuthElevationPlotter";
 import { CableLossCalculator } from "../components/CableLossCalculator";
+import { CableRunPlanner } from "../components/CableRunPlanner";
 import { CoaxCableHealthChecker } from "../components/CoaxCableHealthChecker";
 import { ConnectorTypeGuide } from "../components/ConnectorTypeGuide";
 import { FresnelZoneCalculator } from "../components/FresnelZoneCalculator";
@@ -21,13 +23,16 @@ import { GroundingGuide } from "../components/GroundingGuide";
 import { GuidancePanel } from "../components/GuidancePanel";
 import { HeightOptimizer } from "../components/HeightOptimizer";
 import { InstallationCostEstimator } from "../components/InstallationCostEstimator";
+import { LightningRiskZoneMap } from "../components/LightningRiskZoneMap";
 import { MountingAngleMemory } from "../components/MountingAngleMemory";
 import { PolarizationAdvisor } from "../components/PolarizationAdvisor";
+import { RoofAnchorCalculator } from "../components/RoofAnchorCalculator";
 import { SavedPositions } from "../components/SavedPositions";
 import { SavedProfiles } from "../components/SavedProfiles";
 import { SignalBudgetPlanner } from "../components/SignalBudgetPlanner";
 import { SignalPredictionCard } from "../components/SignalPredictionCard";
 import { SunPositionCard } from "../components/SunPositionCard";
+import { WallRoofPenetrationGuide } from "../components/WallRoofPenetrationGuide";
 import { WeatherImpactCard } from "../components/WeatherImpactCard";
 import { WindCard } from "../components/WindCard";
 import { WindLoadEstimator } from "../components/WindLoadEstimator";
@@ -88,7 +93,11 @@ function BestTimeCard() {
         {HOURS.map((h) => (
           <div
             key={h}
-            className={`flex-1 h-6 ${getHourColor(h)} ${h === currentHour ? "ring-2 ring-white ring-offset-1 relative z-10" : ""}`}
+            className={`flex-1 h-6 ${getHourColor(h)} ${
+              h === currentHour
+                ? "ring-2 ring-white ring-offset-1 relative z-10"
+                : ""
+            }`}
             title={`${h}:00`}
           />
         ))}
@@ -187,7 +196,11 @@ function InstallationChecklist() {
               />
               <Label
                 htmlFor={`check-${idx}`}
-                className={`text-sm cursor-pointer leading-snug ${checks[idx] ? "line-through text-muted-foreground" : "text-foreground"}`}
+                className={`text-sm cursor-pointer leading-snug ${
+                  checks[idx]
+                    ? "line-through text-muted-foreground"
+                    : "text-foreground"
+                }`}
               >
                 {item}
               </Label>
@@ -276,6 +289,40 @@ export function GuidancePage({
           nearestTower={nearestTower}
         />
       </motion.div>
+
+      {/* 🔧 Field Tools */}
+      <div className="mx-2">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-base">🔧</span>
+          <h3 className="font-bold text-sm text-foreground">Field Tools</h3>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+      </div>
+
+      {/* Antenna Alignment Assistant */}
+      <div className="mx-2">
+        <AntennaAlignmentAssistant />
+      </div>
+
+      {/* Cable Run Planner */}
+      <div className="mx-2">
+        <CableRunPlanner />
+      </div>
+
+      {/* Wall & Roof Penetration Guide */}
+      <div className="mx-2">
+        <WallRoofPenetrationGuide />
+      </div>
+
+      {/* Roof Anchor Calculator */}
+      <div className="mx-2">
+        <RoofAnchorCalculator />
+      </div>
+
+      {/* Lightning Risk Zone Map */}
+      <div className="mx-2">
+        <LightningRiskZoneMap userPosition={userPosition} />
+      </div>
 
       {/* V11-11: Polarization Advisor */}
       <div className="mx-2">

@@ -7,6 +7,7 @@ import {
   Lightbulb,
   MapPin,
   Navigation,
+  ShieldAlert,
   Smartphone,
   Wifi,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const tabs = [
   { id: "help", label: "Help", icon: HelpCircle },
   { id: "ar", label: "AR", icon: Camera },
   { id: "history", label: "History", icon: BookOpen },
+  { id: "safety", label: "Safety", icon: ShieldAlert },
 ];
 
 export function BottomNav({
