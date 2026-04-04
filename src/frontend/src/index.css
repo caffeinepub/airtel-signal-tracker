@@ -123,6 +123,15 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Scrollbar hide utility for scrollable bottom nav */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Gradient button */
 .btn-airtel {
   background: linear-gradient(
@@ -144,4 +153,22 @@
 
 .btn-airtel:active {
   transform: translateY(0);
+}
+
+/* Feature 15: Large Text Mode */
+.large-text {
+  font-size: 1.125rem;
+}
+
+.large-text .text-xs {
+  font-size: 0.875rem;
+}
+
+.large-text .text-sm {
+  font-size: 1rem;
+}
+
+.large-text button,
+.large-text a[role="button"] {
+  min-height: 48px;
 }

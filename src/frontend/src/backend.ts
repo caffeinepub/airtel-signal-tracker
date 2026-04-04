@@ -98,26 +98,89 @@ export interface SignalPosition {
     heightRecommendation: bigint;
     rssiDbm: bigint;
 }
+export interface TowerStatusLog {
+    latencyMs: bigint;
+    timestamp: bigint;
+    towerName: string;
+    reachable: boolean;
+}
+export interface CoverageGapReport {
+    id: bigint;
+    latitude: number;
+    description: string;
+    longitude: number;
+    timestamp: bigint;
+}
+export interface CommunitySignalReport {
+    id: bigint;
+    latitude: number;
+    quality: SignalQuality;
+    note?: string;
+    longitude: number;
+    timestamp: bigint;
+}
 export interface Tower {
     region: string;
     latitude: number;
     name: string;
     longitude: number;
 }
+export enum SignalQuality {
+    Good = "Good",
+    None = "None",
+    Weak = "Weak",
+    Excellent = "Excellent"
+}
 export interface backendInterface {
+    addCommunitySignalReport(latitude: number, longitude: number, quality: SignalQuality, note: string | null): Promise<bigint>;
+    addCoverageGapReport(latitude: number, longitude: number, description: string): Promise<bigint>;
     addTower(name: string, region: string, latitude: number, longitude: number): Promise<void>;
+    addTowerStatusLog(towerName: string, reachable: boolean, latencyMs: bigint): Promise<bigint>;
+    clearCommunitySignalReports(): Promise<void>;
+    clearOldTowerStatusLogs(olderThanSeconds: bigint): Promise<void>;
     clearSignalPositions(): Promise<void>;
     getAllAppSettings(): Promise<Array<[string, string]>>;
+    getAllTowerStatusLogs(): Promise<Array<TowerStatusLog>>;
     getAppSetting(key: string): Promise<string | null>;
+    getCommunitySignalReports(): Promise<Array<CommunitySignalReport>>;
+    getCoverageGapReports(): Promise<Array<CoverageGapReport>>;
     getSignalPositions(): Promise<Array<SignalPosition>>;
     getTowerByName(name: string): Promise<Tower | null>;
     getTowers(): Promise<Array<Tower>>;
     saveSignalPosition(id: string, latitude: number, longitude: number, compassHeading: number, rssiDbm: bigint, heightRecommendation: bigint, tiltAngle: number): Promise<void>;
     setAppSetting(key: string, value: string): Promise<void>;
 }
-import type { Tower as _Tower } from "./declarations/backend.did.d.ts";
+import type { CommunitySignalReport as _CommunitySignalReport, SignalQuality as _SignalQuality, Tower as _Tower } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
+    async addCommunitySignalReport(arg0: number, arg1: number, arg2: SignalQuality, arg3: string | null): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addCommunitySignalReport(arg0, arg1, to_candid_SignalQuality_n1(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n3(this._uploadFile, this._downloadFile, arg3));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addCommunitySignalReport(arg0, arg1, to_candid_SignalQuality_n1(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n3(this._uploadFile, this._downloadFile, arg3));
+            return result;
+        }
+    }
+    async addCoverageGapReport(arg0: number, arg1: number, arg2: string): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addCoverageGapReport(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addCoverageGapReport(arg0, arg1, arg2);
+            return result;
+        }
+    }
     async addTower(arg0: string, arg1: string, arg2: number, arg3: number): Promise<void> {
         if (this.processError) {
             try {
@@ -129,6 +192,48 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.addTower(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
+    async addTowerStatusLog(arg0: string, arg1: boolean, arg2: bigint): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addTowerStatusLog(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addTowerStatusLog(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async clearCommunitySignalReports(): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.clearCommunitySignalReports();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.clearCommunitySignalReports();
+            return result;
+        }
+    }
+    async clearOldTowerStatusLogs(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.clearOldTowerStatusLogs(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.clearOldTowerStatusLogs(arg0);
             return result;
         }
     }
@@ -160,18 +265,60 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getAllTowerStatusLogs(): Promise<Array<TowerStatusLog>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllTowerStatusLogs();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllTowerStatusLogs();
+            return result;
+        }
+    }
     async getAppSetting(arg0: string): Promise<string | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAppSetting(arg0);
-                return from_candid_opt_n1(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n4(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAppSetting(arg0);
-            return from_candid_opt_n1(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n4(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCommunitySignalReports(): Promise<Array<CommunitySignalReport>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCommunitySignalReports();
+                return from_candid_vec_n5(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCommunitySignalReports();
+            return from_candid_vec_n5(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCoverageGapReports(): Promise<Array<CoverageGapReport>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCoverageGapReports();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCoverageGapReports();
+            return result;
         }
     }
     async getSignalPositions(): Promise<Array<SignalPosition>> {
@@ -192,14 +339,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getTowerByName(arg0);
-                return from_candid_opt_n2(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getTowerByName(arg0);
-            return from_candid_opt_n2(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n10(this._uploadFile, this._downloadFile, result);
         }
     }
     async getTowers(): Promise<Array<Tower>> {
@@ -245,11 +392,80 @@ export class Backend implements backendInterface {
         }
     }
 }
-function from_candid_opt_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+function from_candid_CommunitySignalReport_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CommunitySignalReport): CommunitySignalReport {
+    return from_candid_record_n7(_uploadFile, _downloadFile, value);
+}
+function from_candid_SignalQuality_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SignalQuality): SignalQuality {
+    return from_candid_variant_n9(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Tower]): Tower | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Tower]): Tower | null {
+function from_candid_opt_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
     return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    latitude: number;
+    quality: _SignalQuality;
+    note: [] | [string];
+    longitude: number;
+    timestamp: bigint;
+}): {
+    id: bigint;
+    latitude: number;
+    quality: SignalQuality;
+    note?: string;
+    longitude: number;
+    timestamp: bigint;
+} {
+    return {
+        id: value.id,
+        latitude: value.latitude,
+        quality: from_candid_SignalQuality_n8(_uploadFile, _downloadFile, value.quality),
+        note: record_opt_to_undefined(from_candid_opt_n4(_uploadFile, _downloadFile, value.note)),
+        longitude: value.longitude,
+        timestamp: value.timestamp
+    };
+}
+function from_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    Good: null;
+} | {
+    None: null;
+} | {
+    Weak: null;
+} | {
+    Excellent: null;
+}): SignalQuality {
+    return "Good" in value ? SignalQuality.Good : "None" in value ? SignalQuality.None : "Weak" in value ? SignalQuality.Weak : "Excellent" in value ? SignalQuality.Excellent : value;
+}
+function from_candid_vec_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CommunitySignalReport>): Array<CommunitySignalReport> {
+    return value.map((x)=>from_candid_CommunitySignalReport_n6(_uploadFile, _downloadFile, x));
+}
+function to_candid_SignalQuality_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: SignalQuality): _SignalQuality {
+    return to_candid_variant_n2(_uploadFile, _downloadFile, value);
+}
+function to_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: string | null): [] | [string] {
+    return value === null ? candid_none() : candid_some(value);
+}
+function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: SignalQuality): {
+    Good: null;
+} | {
+    None: null;
+} | {
+    Weak: null;
+} | {
+    Excellent: null;
+} {
+    return value == SignalQuality.Good ? {
+        Good: null
+    } : value == SignalQuality.None ? {
+        None: null
+    } : value == SignalQuality.Weak ? {
+        Weak: null
+    } : value == SignalQuality.Excellent ? {
+        Excellent: null
+    } : value;
 }
 export interface CreateActorOptions {
     agent?: Agent;

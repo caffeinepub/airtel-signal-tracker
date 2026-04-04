@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { SignalPosition, Tower } from "../backend.d";
+import type {
+  CommunitySignalReport,
+  CoverageGapReport,
+  SignalPosition,
+  Tower,
+  TowerStatusLog,
+} from "../backend.d";
+import { SignalQuality } from "../backend.d";
 import { useActor } from "./useActor";
 
 const TOWERS_CACHE_KEY = "airtel_towers_cache";
@@ -144,3 +151,133 @@ export function useSavePosition() {
     },
   });
 }
+
+// ─── Community Signal Reports ─────────────────────────────────────────────────
+
+export function useCommunitySignalReports() {
+  const { actor, isFetching } = useActor();
+  return useQuery<CommunitySignalReport[]>({
+    queryKey: ["community-signal-reports"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.getCommunitySignalReports();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useAddCommunitySignalReport() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      latitude: number;
+      longitude: number;
+      quality: SignalQuality;
+      note: string | null;
+    }) => {
+      if (!actor) throw new Error("No actor available");
+      return actor.addCommunitySignalReport(
+        params.latitude,
+        params.longitude,
+        params.quality,
+        params.note,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["community-signal-reports"] });
+    },
+  });
+}
+
+// ─── Coverage Gap Reports ─────────────────────────────────────────────────────
+
+export function useCoverageGapReports() {
+  const { actor, isFetching } = useActor();
+  return useQuery<CoverageGapReport[]>({
+    queryKey: ["coverage-gap-reports"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.getCoverageGapReports();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useAddCoverageGapReport() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      latitude: number;
+      longitude: number;
+      description: string;
+    }) => {
+      if (!actor) throw new Error("No actor available");
+      return actor.addCoverageGapReport(
+        params.latitude,
+        params.longitude,
+        params.description,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["coverage-gap-reports"] });
+    },
+  });
+}
+
+// ─── Tower Status Logs ────────────────────────────────────────────────────────
+
+export function useTowerStatusLogs() {
+  const { actor, isFetching } = useActor();
+  return useQuery<TowerStatusLog[]>({
+    queryKey: ["tower-status-logs"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.getAllTowerStatusLogs();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 60000,
+  });
+}
+
+export function useAddTowerStatusLog() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      towerName: string;
+      reachable: boolean;
+      latencyMs: bigint;
+    }) => {
+      if (!actor) throw new Error("No actor available");
+      return actor.addTowerStatusLog(
+        params.towerName,
+        params.reachable,
+        params.latencyMs,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tower-status-logs"] });
+    },
+  });
+}
+
+export { SignalQuality };

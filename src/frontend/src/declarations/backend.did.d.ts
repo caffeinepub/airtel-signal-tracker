@@ -10,6 +10,21 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface CommunitySignalReport {
+  'id' : bigint,
+  'latitude' : number,
+  'quality' : SignalQuality,
+  'note' : [] | [string],
+  'longitude' : number,
+  'timestamp' : bigint,
+}
+export interface CoverageGapReport {
+  'id' : bigint,
+  'latitude' : number,
+  'description' : string,
+  'longitude' : number,
+  'timestamp' : bigint,
+}
 export interface SignalPosition {
   'latitude' : number,
   'compassHeading' : number,
@@ -19,17 +34,38 @@ export interface SignalPosition {
   'heightRecommendation' : bigint,
   'rssiDbm' : bigint,
 }
+export type SignalQuality = { 'Good' : null } |
+  { 'None' : null } |
+  { 'Weak' : null } |
+  { 'Excellent' : null };
 export interface Tower {
   'region' : string,
   'latitude' : number,
   'name' : string,
   'longitude' : number,
 }
+export interface TowerStatusLog {
+  'latencyMs' : bigint,
+  'timestamp' : bigint,
+  'towerName' : string,
+  'reachable' : boolean,
+}
 export interface _SERVICE {
+  'addCommunitySignalReport' : ActorMethod<
+    [number, number, SignalQuality, [] | [string]],
+    bigint
+  >,
+  'addCoverageGapReport' : ActorMethod<[number, number, string], bigint>,
   'addTower' : ActorMethod<[string, string, number, number], undefined>,
+  'addTowerStatusLog' : ActorMethod<[string, boolean, bigint], bigint>,
+  'clearCommunitySignalReports' : ActorMethod<[], undefined>,
+  'clearOldTowerStatusLogs' : ActorMethod<[bigint], undefined>,
   'clearSignalPositions' : ActorMethod<[], undefined>,
   'getAllAppSettings' : ActorMethod<[], Array<[string, string]>>,
+  'getAllTowerStatusLogs' : ActorMethod<[], Array<TowerStatusLog>>,
   'getAppSetting' : ActorMethod<[string], [] | [string]>,
+  'getCommunitySignalReports' : ActorMethod<[], Array<CommunitySignalReport>>,
+  'getCoverageGapReports' : ActorMethod<[], Array<CoverageGapReport>>,
   'getSignalPositions' : ActorMethod<[], Array<SignalPosition>>,
   'getTowerByName' : ActorMethod<[string], [] | [Tower]>,
   'getTowers' : ActorMethod<[], Array<Tower>>,

@@ -5,15 +5,22 @@ import { toast } from "sonner";
 
 import { AppHeader } from "./components/AppHeader";
 import { BottomNav } from "./components/BottomNav";
+import { TutorialOverlay } from "./components/TutorialOverlay";
 import { ARPage } from "./pages/ARPage";
 import { CompassPage } from "./pages/CompassPage";
+import { GpsDirectionPage } from "./pages/GpsDirectionPage";
 import { GuidancePage } from "./pages/GuidancePage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { HomePage } from "./pages/HomePage";
 import { MapPage } from "./pages/MapPage";
+import { TroubleshootingPage } from "./pages/TroubleshootingPage";
+import { UssdPage } from "./pages/UssdPage";
+import { WifiScannerPage } from "./pages/WifiScannerPage";
 
 import { useCompass } from "./hooks/useCompass";
 import { useGPS } from "./hooks/useGPS";
+import { useNightMode } from "./hooks/useNightMode";
+import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import {
   useSeedTowers,
   useSignalPositions,
@@ -22,8 +29,21 @@ import {
 
 import type { Tower } from "./backend.d";
 import { calculateBearing, calculateDistance, estimateRSSI } from "./utils/geo";
+import type { LangCode } from "./utils/i18n";
 
-type TabId = "home" | "compass" | "map" | "guidance" | "ar" | "history";
+const TUTORIAL_KEY = "tutorial_shown";
+
+type TabId =
+  | "home"
+  | "compass"
+  | "gps"
+  | "map"
+  | "guidance"
+  | "ar"
+  | "history"
+  | "wifi"
+  | "ussd"
+  | "help";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("home");
@@ -34,15 +54,80 @@ export default function App() {
   const [hasAlertedOptimal, setHasAlertedOptimal] = useState(false);
   const rssiTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Feature 7: Battery Saver Mode
+  // Tutorial overlay
+  const [showTutorial, setShowTutorial] = useState(
+    () => localStorage.getItem(TUTORIAL_KEY) !== "true",
+  );
+
+  // Battery Saver Mode
   const [batterySaver, setBatterySaver] = useState(
     () => localStorage.getItem("battery_saver") === "true",
   );
+
+  // Feature 14: Low-Bandwidth Mode
+  const [lowBandwidth, setLowBandwidth] = useState(
+    () => localStorage.getItem("low_bandwidth") === "true",
+  );
+
+  // Feature 15: Large Text Mode
+  const [largeText, setLargeText] = useState(
+    () => localStorage.getItem("large_text") === "true",
+  );
+
+  // Feature 13: Language
+  const [lang, setLang] = useState<LangCode>(
+    () => (localStorage.getItem("app_language") as LangCode) ?? "en",
+  );
+
+  // V11 Feature 50: Elder Mode
+  const [elderMode, setElderMode] = useState(
+    () => localStorage.getItem("elder_mode") === "true",
+  );
+
+  const handleElderModeChange = (val: boolean) => {
+    setElderMode(val);
+    localStorage.setItem("elder_mode", String(val));
+  };
 
   const handleBatterySaverChange = (val: boolean) => {
     setBatterySaver(val);
     localStorage.setItem("battery_saver", String(val));
   };
+
+  const handleLowBandwidthChange = (val: boolean) => {
+    setLowBandwidth(val);
+    localStorage.setItem("low_bandwidth", String(val));
+  };
+
+  const handleLargeTextChange = (val: boolean) => {
+    setLargeText(val);
+    localStorage.setItem("large_text", String(val));
+  };
+
+  const handleLangChange = (newLang: LangCode) => {
+    setLang(newLang);
+    localStorage.setItem("app_language", newLang);
+  };
+
+  // Night Mode
+  const { isDark, toggle: toggleNightMode } = useNightMode();
+
+  // Online status monitor
+  const isOnline = useOnlineStatus();
+  const prevOnlineRef = useRef<boolean>(isOnline);
+
+  useEffect(() => {
+    const wasOnline = prevOnlineRef.current;
+    prevOnlineRef.current = isOnline;
+
+    if (!isOnline && wasOnline) {
+      toast.warning("You are offline — using cached data", {
+        duration: 5000,
+      });
+    } else if (isOnline && !wasOnline) {
+      toast.success("Connection restored ✅", { duration: 3000 });
+    }
+  }, [isOnline]);
 
   const { position: userPosition, status: gpsStatus } = useGPS({
     batterySaver,
@@ -149,19 +234,38 @@ export default function App() {
     exit: { opacity: 0, y: -12 },
   };
 
+  const PageWrapper = lowBandwidth ? "div" : motion.div;
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppHeader activeTab={activeTab} onTabChange={handleTabChange} />
+    <div
+      className={`min-h-screen bg-background flex flex-col${largeText ? " large-text" : ""}`}
+    >
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <TutorialOverlay onComplete={() => setShowTutorial(false)} />
+      )}
+
+      <AppHeader
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        lang={lang}
+        onLangChange={handleLangChange}
+        lowBandwidth={lowBandwidth}
+      />
 
       <main className="flex-1 pb-20 md:pb-6 max-w-2xl mx-auto w-full">
         <AnimatePresence mode="wait">
-          <motion.div
+          <PageWrapper
             key={activeTab}
-            variants={pageVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.2 }}
+            {...(!lowBandwidth
+              ? {
+                  variants: pageVariants,
+                  initial: "initial",
+                  animate: "animate",
+                  exit: "exit",
+                  transition: { duration: 0.2 },
+                }
+              : {})}
             className="pt-4"
           >
             {activeTab === "home" && (
@@ -173,6 +277,18 @@ export default function App() {
                 gpsStatus={gpsStatus}
                 batterySaver={batterySaver}
                 onBatterySaverChange={handleBatterySaverChange}
+                isOnline={isOnline}
+                isDarkMode={isDark}
+                onToggleDarkMode={toggleNightMode}
+                userPosition={userPosition}
+                lowBandwidth={lowBandwidth}
+                onLowBandwidthChange={handleLowBandwidthChange}
+                largeText={largeText}
+                onLargeTextChange={handleLargeTextChange}
+                lang={lang}
+                towers={towers}
+                elderMode={elderMode}
+                onElderModeChange={handleElderModeChange}
               />
             )}
             {activeTab === "compass" && (
@@ -188,6 +304,13 @@ export default function App() {
                 onRequestCompassPermission={requestCompassPermission}
                 onRecalibrate={handleRecalibrate}
                 onGetTowerDetails={handleGetTowerDetails}
+              />
+            )}
+            {activeTab === "gps" && (
+              <GpsDirectionPage
+                userPosition={userPosition}
+                gpsStatus={gpsStatus}
+                deviceHeading={deviceHeading}
               />
             )}
             {activeTab === "map" && (
@@ -214,16 +337,32 @@ export default function App() {
                 rssi={rssi}
                 towerName={nearestTower?.name ?? "Nearest Tower"}
                 isOptimal={isOptimal}
+                towers={towers}
+                userPosition={userPosition}
               />
             )}
             {activeTab === "history" && (
-              <HistoryPage positions={savedPositions} />
+              <HistoryPage
+                positions={savedPositions}
+                towers={towers}
+                userPosition={userPosition}
+                rssi={rssi}
+                distanceKm={distanceKm}
+                nearestTowerName={nearestTower?.name ?? "Unknown Tower"}
+              />
             )}
-          </motion.div>
+            {activeTab === "wifi" && <WifiScannerPage isOnline={isOnline} />}
+            {activeTab === "ussd" && <UssdPage />}
+            {activeTab === "help" && <TroubleshootingPage />}
+          </PageWrapper>
         </AnimatePresence>
       </main>
 
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        elderMode={elderMode}
+      />
 
       <footer className="hidden md:block bg-footer-bg text-white py-5 px-4">
         <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -264,10 +403,10 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("history")}
+              onClick={() => setActiveTab("ussd")}
               className="hover:text-white transition-colors"
             >
-              History
+              USSD Codes
             </button>
             <span>Optimized for Mobile</span>
           </div>

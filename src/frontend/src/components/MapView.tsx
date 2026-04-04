@@ -1,11 +1,26 @@
 import { useEffect, useRef, useState } from "react";
-import type { Tower } from "../backend.d";
+import type {
+  CommunitySignalReport,
+  CoverageGapReport,
+  Tower,
+} from "../backend.d";
+import { SignalQuality } from "../backend.d";
 import type { GPSPosition } from "../hooks/useGPS";
+
+export interface NearbyUser {
+  lat: number;
+  lon: number;
+  rssi: number;
+}
 
 interface MapViewProps {
   userPosition: GPSPosition;
   towers: Tower[];
   nearestTower: Tower | null;
+  communityReports?: CommunitySignalReport[];
+  gapReports?: CoverageGapReport[];
+  showHeatmap?: boolean;
+  nearbyUsers?: NearbyUser[];
 }
 
 // Minimal Leaflet types we need (loaded via CDN)
@@ -32,12 +47,18 @@ interface LTileLayer {
   addTo(map: LMap): LTileLayer;
 }
 
+interface LCircle {
+  addTo(map: LMap): LCircle;
+  bindPopup(content: string): LCircle;
+}
+
 interface LeafletStatic {
   map(el: HTMLElement, options?: object): LMap;
   tileLayer(url: string, options?: object): LTileLayer;
   divIcon(options: object): LIcon;
   marker(latlng: [number, number], options?: object): LMarker;
   polyline(latlngs: Array<[number, number]>, options?: object): LPolyline;
+  circle(latlng: [number, number], options?: object): LCircle;
 }
 
 function getLeafletFromWindow(): LeafletStatic | null {
@@ -66,14 +87,57 @@ function loadLeafletCdn(): Promise<void> {
   });
 }
 
-export function MapView({ userPosition, towers, nearestTower }: MapViewProps) {
+function qualityToColor(quality: SignalQuality): string {
+  switch (quality) {
+    case SignalQuality.Excellent:
+      return "#22c55e";
+    case SignalQuality.Good:
+      return "#86efac";
+    case SignalQuality.Weak:
+      return "#facc15";
+    case SignalQuality.None:
+      return "#ef4444";
+    default:
+      return "#94a3b8";
+  }
+}
+
+// Generate deterministic nearby users from tower positions
+export function generateNearbyUsers(towers: Tower[]): NearbyUser[] {
+  const users: NearbyUser[] = [];
+  for (const tower of towers) {
+    const seed = Math.floor(tower.latitude * 1000);
+    const count = 1 + (seed % 2); // 1-2 per tower
+    for (let i = 0; i < count; i++) {
+      const pseudoRand1 = ((seed * 9301 + 49297 * i) % 233280) / 233280;
+      const pseudoRand2 = ((seed * 6673 + 47291 * (i + 1)) % 233280) / 233280;
+      const pseudoRand3 = ((seed * 3513 + 91011 * (i + 2)) % 233280) / 233280;
+      users.push({
+        lat: tower.latitude + (pseudoRand1 - 0.5) * 0.04,
+        lon: tower.longitude + (pseudoRand2 - 0.5) * 0.04,
+        rssi: -70 - Math.floor(pseudoRand3 * 30),
+      });
+    }
+  }
+  return users;
+}
+
+export function MapView({
+  userPosition,
+  towers,
+  nearestTower,
+  communityReports = [],
+  gapReports = [],
+  showHeatmap = false,
+  nearbyUsers = [],
+}: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LMap | null>(null);
   const layersRef = useRef<unknown[]>([]);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ── Effect 1: Init map once on mount ──────────────────────────────────────
+  // ── Effect 1: Init map once on mount ──────────────────────────────────────────
   // biome-ignore lint/correctness/useExhaustiveDependencies: map is initialized once
   useEffect(() => {
     let isMounted = true;
@@ -127,7 +191,7 @@ export function MapView({ userPosition, towers, nearestTower }: MapViewProps) {
     };
   }, []);
 
-  // ── Effect 2: Re-draw markers + line whenever position / towers change ────
+  // ── Effect 2: Re-draw markers + line whenever data changes ──────────────────
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -144,7 +208,74 @@ export function MapView({ userPosition, towers, nearestTower }: MapViewProps) {
     // Re-center map to user position
     map.setView([userPosition.latitude, userPosition.longitude]);
 
-    // Blue pulsing dot — user location
+    // —— Nearby simulated users (gray dots) ——
+    for (const user of nearbyUsers) {
+      const userDotHtml = `<div style="width:10px;height:10px;background:#94a3b8;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`;
+      const userDotIcon = L.divIcon({
+        html: userDotHtml,
+        iconSize: [10, 10],
+        iconAnchor: [5, 5],
+        className: "",
+      });
+      const dot = L.marker([user.lat, user.lon], { icon: userDotIcon })
+        .addTo(map)
+        .bindPopup(`Anonymous user \u2014 ${user.rssi} dBm`);
+      layersRef.current.push(dot);
+    }
+
+    // —— Heatmap circles from community reports ——
+    if (showHeatmap) {
+      for (const report of communityReports) {
+        const color = qualityToColor(report.quality);
+        const circle = L.circle([report.latitude, report.longitude], {
+          radius: 300,
+          color,
+          fillColor: color,
+          fillOpacity: 0.3,
+          weight: 1,
+        }).addTo(map);
+        layersRef.current.push(circle);
+      }
+    }
+
+    // —— Community report pins (colored small circles) ——
+    for (const report of communityReports) {
+      const color = qualityToColor(report.quality);
+      const pinHtml = `<div style="width:12px;height:12px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`;
+      const pinIcon = L.divIcon({
+        html: pinHtml,
+        iconSize: [12, 12],
+        iconAnchor: [6, 6],
+        className: "",
+      });
+      const marker = L.marker([report.latitude, report.longitude], {
+        icon: pinIcon,
+      })
+        .addTo(map)
+        .bindPopup(
+          `Signal: ${report.quality}${report.note ? `<br>${report.note}` : ""}`,
+        );
+      layersRef.current.push(marker);
+    }
+
+    // —— Gap report X markers (orange) ——
+    for (const gap of gapReports) {
+      const gapHtml = `<div style="width:16px;height:16px;background:#f97316;border:2px solid white;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;box-shadow:0 1px 4px rgba(0,0,0,0.3);">\u2715</div>`;
+      const gapIcon = L.divIcon({
+        html: gapHtml,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+        className: "",
+      });
+      const gapMarker = L.marker([gap.latitude, gap.longitude], {
+        icon: gapIcon,
+      })
+        .addTo(map)
+        .bindPopup(`Dead zone: ${gap.description}`);
+      layersRef.current.push(gapMarker);
+    }
+
+    // —— Blue pulsing dot — user location ——
     const userIcon = L.divIcon({
       html: `
         <div style="
@@ -174,7 +305,7 @@ export function MapView({ userPosition, towers, nearestTower }: MapViewProps) {
       .bindPopup("\ud83d\udccd Your Location");
     layersRef.current.push(userMarker);
 
-    // Red satellite icons — all towers
+    // —— Red satellite icons — all towers ——
     const towerHtml =
       '<div style="width:26px;height:26px;background:#e10b0b;border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);font-size:13px">\ud83d\udce1</div>';
     const towerIcon = L.divIcon({
@@ -193,7 +324,7 @@ export function MapView({ userPosition, towers, nearestTower }: MapViewProps) {
       layersRef.current.push(marker);
     }
 
-    // Bold bright-red line from user → nearest tower
+    // —— Bold bright-red line from user \u2192 nearest tower ——
     if (nearestTower) {
       const line = L.polyline(
         [
@@ -204,13 +335,19 @@ export function MapView({ userPosition, towers, nearestTower }: MapViewProps) {
           color: "#E10B0B",
           weight: 4,
           opacity: 0.92,
-          // Animated dash offset via CSS on the SVG path is not natively
-          // supported in Leaflet, so we use a solid line for maximum clarity.
         },
       ).addTo(map);
       layersRef.current.push(line);
     }
-  }, [userPosition, towers, nearestTower]);
+  }, [
+    userPosition,
+    towers,
+    nearestTower,
+    communityReports,
+    gapReports,
+    showHeatmap,
+    nearbyUsers,
+  ]);
 
   if (mapError) {
     return (

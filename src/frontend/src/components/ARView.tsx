@@ -12,6 +12,131 @@ interface ARViewProps {
   isOptimal: boolean;
 }
 
+// Feature V10-13: AR Distance Rings
+function DistanceRings({ towerDistanceKm }: { towerDistanceKm: number }) {
+  const rings = [
+    { km: 0.5, color: "white", strokeWidth: 1.5, r: 60 },
+    { km: 1, color: "#facc15", strokeWidth: 1.5, r: 100 },
+    { km: 2, color: "#f97316", strokeWidth: 2, r: 140 },
+  ];
+
+  const nearestRingIdx = rings.reduce((best, ring, i) => {
+    const prev = rings[best];
+    return Math.abs(ring.km - towerDistanceKm) <
+      Math.abs(prev.km - towerDistanceKm)
+      ? i
+      : best;
+  }, 0);
+
+  return (
+    <svg
+      viewBox="0 0 300 300"
+      className="absolute inset-0 w-full h-full"
+      style={{ pointerEvents: "none" }}
+      role="img"
+      aria-label="AR distance rings"
+    >
+      <title>Distance rings</title>
+      {rings.map((ring, i) => (
+        <g key={ring.km}>
+          <circle
+            cx={150}
+            cy={150}
+            r={ring.r}
+            fill="none"
+            stroke={ring.color}
+            strokeWidth={
+              i === nearestRingIdx ? ring.strokeWidth + 1.5 : ring.strokeWidth
+            }
+            opacity={i === nearestRingIdx ? 1 : 0.5}
+            strokeDasharray={i === nearestRingIdx ? "none" : "6,4"}
+          />
+          {i === nearestRingIdx && (
+            <circle
+              cx={150}
+              cy={150}
+              r={ring.r}
+              fill="none"
+              stroke={ring.color}
+              strokeWidth={4}
+              opacity={0.3}
+              className="animate-ping"
+            />
+          )}
+          <text
+            x={150 + ring.r - 6}
+            y={150 + 4}
+            textAnchor="middle"
+            fontSize={10}
+            fill={ring.color}
+            fontWeight="bold"
+            opacity={0.8}
+          >
+            {ring.km}km
+          </text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// Feature V10-14: AR Signal Strength Overlay
+function SignalDirectionOverlay({ relativeAngle }: { relativeAngle: number }) {
+  // Green = toward tower (relativeAngle near 0), yellow = ±30°, red = opposite
+  const towardTower = relativeAngle <= 15 || relativeAngle >= 345;
+  const nearTower =
+    (relativeAngle <= 30 && relativeAngle > 15) ||
+    (relativeAngle >= 330 && relativeAngle < 345);
+
+  const gradientId = "signal-gradient";
+
+  return (
+    <svg
+      viewBox="0 0 300 300"
+      className="absolute inset-0 w-full h-full"
+      style={{ pointerEvents: "none" }}
+      role="img"
+      aria-label="Signal direction overlay"
+    >
+      <defs>
+        <radialGradient id={gradientId} cx="50%" cy="100%" r="80%">
+          <stop
+            offset="0%"
+            stopColor={
+              towardTower ? "#22c55e" : nearTower ? "#facc15" : "#ef4444"
+            }
+            stopOpacity={0.4}
+          />
+          <stop offset="100%" stopColor="transparent" stopOpacity={0} />
+        </radialGradient>
+      </defs>
+      {/* Bottom half gradient arc */}
+      <ellipse
+        cx={150}
+        cy={260}
+        rx={130}
+        ry={80}
+        fill={`url(#${gradientId})`}
+      />
+      {/* Direction text label */}
+      <text
+        x={150}
+        y={290}
+        textAnchor="middle"
+        fontSize={11}
+        fill={towardTower ? "#22c55e" : nearTower ? "#facc15" : "#ef4444"}
+        fontWeight="bold"
+      >
+        {towardTower
+          ? "↑ Tower Direction"
+          : nearTower
+            ? "↗ Almost aligned"
+            : "← Rotate toward tower"}
+      </text>
+    </svg>
+  );
+}
+
 export function ARView({
   bearing,
   relativeAngle,
@@ -23,6 +148,8 @@ export function ARView({
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  // Mock tower distance for rings (in a real app, pass as prop)
+  const towerDistanceKm = 1.5;
 
   const startAR = async () => {
     setError(null);
@@ -80,10 +207,32 @@ export function ARView({
           <Camera className="w-10 h-10 text-primary" />
         </div>
         <h3 className="text-xl font-bold font-display mb-2">AR Camera Mode</h3>
-        <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+        <p className="text-sm text-muted-foreground mb-4 max-w-xs">
           Point your phone toward the direction shown on the compass. The AR
           overlay will guide you to the optimal antenna direction.
         </p>
+
+        {/* Preview of AR features */}
+        <div className="w-full max-w-xs text-left space-y-2 mb-6">
+          <p className="text-xs font-semibold text-foreground">AR Overlays:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { icon: "◯", text: "Distance rings (0.5/1/2km)" },
+              { icon: "🟢", text: "Signal direction gradient" },
+              { icon: "↑", text: "Rotating bearing arrow" },
+              { icon: "✅", text: "Optimal zone indicator" },
+            ].map(({ icon, text }) => (
+              <div
+                key={text}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <span className="text-base">{icon}</span>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {error && (
           <div
             data-ocid="ar.error_state"
@@ -118,6 +267,16 @@ export function ARView({
         muted
         style={{ minHeight: 400 }}
       />
+
+      {/* Feature V10-13: Distance rings overlay */}
+      <div className="absolute inset-0" style={{ pointerEvents: "none" }}>
+        <DistanceRings towerDistanceKm={towerDistanceKm} />
+      </div>
+
+      {/* Feature V10-14: Signal strength direction overlay */}
+      <div className="absolute inset-0" style={{ pointerEvents: "none" }}>
+        <SignalDirectionOverlay relativeAngle={relativeAngle} />
+      </div>
 
       <div
         className="absolute inset-0 flex flex-col items-center justify-between p-6"

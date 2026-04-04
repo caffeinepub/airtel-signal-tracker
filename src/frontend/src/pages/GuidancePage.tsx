@@ -8,8 +8,29 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Tower } from "../backend.d";
+import { AntennaAngleCalculator } from "../components/AntennaAngleCalculator";
+import { AntennaGainComparator } from "../components/AntennaGainComparator";
+import { AntennaWizard } from "../components/AntennaWizard";
+import { ApnResetGuide } from "../components/ApnResetGuide";
+import { AzimuthElevationPlotter } from "../components/AzimuthElevationPlotter";
+import { CableLossCalculator } from "../components/CableLossCalculator";
+import { CoaxCableHealthChecker } from "../components/CoaxCableHealthChecker";
+import { ConnectorTypeGuide } from "../components/ConnectorTypeGuide";
+import { FresnelZoneCalculator } from "../components/FresnelZoneCalculator";
+import { GroundingGuide } from "../components/GroundingGuide";
 import { GuidancePanel } from "../components/GuidancePanel";
+import { HeightOptimizer } from "../components/HeightOptimizer";
+import { InstallationCostEstimator } from "../components/InstallationCostEstimator";
+import { MountingAngleMemory } from "../components/MountingAngleMemory";
+import { PolarizationAdvisor } from "../components/PolarizationAdvisor";
 import { SavedPositions } from "../components/SavedPositions";
+import { SavedProfiles } from "../components/SavedProfiles";
+import { SignalBudgetPlanner } from "../components/SignalBudgetPlanner";
+import { SignalPredictionCard } from "../components/SignalPredictionCard";
+import { SunPositionCard } from "../components/SunPositionCard";
+import { WeatherImpactCard } from "../components/WeatherImpactCard";
+import { WindCard } from "../components/WindCard";
+import { WindLoadEstimator } from "../components/WindLoadEstimator";
 import { useActor } from "../hooks/useActor";
 import type { GPSPosition } from "../hooks/useGPS";
 import { useSavePosition, useSignalPositions } from "../hooks/useQueries";
@@ -37,26 +58,20 @@ function loadChecklist(): boolean[] {
       }
     }
   } catch {
-    // ignore
+    /* ignore */
   }
   return new Array(CHECKLIST_ITEMS.length).fill(false);
 }
 
-// Feature 5: Best Time of Day color for each hour
 function getHourColor(hour: number): string {
-  // High congestion: 6-9, 12-13, 17-21 => red/orange
   if (
     (hour >= 6 && hour < 9) ||
     (hour >= 12 && hour < 14) ||
     (hour >= 17 && hour < 21)
-  ) {
+  )
     return "bg-red-500";
-  }
-  // Medium: 9-12, 14-17
-  if ((hour >= 9 && hour < 12) || (hour >= 14 && hour < 17)) {
+  if ((hour >= 9 && hour < 12) || (hour >= 14 && hour < 17))
     return "bg-yellow-400";
-  }
-  // Low: 21-24, 0-6
   return "bg-signal-green";
 }
 
@@ -73,11 +88,7 @@ function BestTimeCard() {
         {HOURS.map((h) => (
           <div
             key={h}
-            className={`flex-1 h-6 ${getHourColor(h)} ${
-              h === currentHour
-                ? "ring-2 ring-white ring-offset-1 relative z-10"
-                : ""
-            }`}
+            className={`flex-1 h-6 ${getHourColor(h)} ${h === currentHour ? "ring-2 ring-white ring-offset-1 relative z-10" : ""}`}
             title={`${h}:00`}
           />
         ))}
@@ -102,7 +113,7 @@ function BestTimeCard() {
       <p className="text-xs text-muted-foreground mt-2">
         Best signal window:{" "}
         <span className="font-semibold text-signal-green">10 PM – 6 AM</span>{" "}
-        (low network congestion)
+        (low congestion)
       </p>
     </div>
   );
@@ -111,7 +122,6 @@ function BestTimeCard() {
 function InstallationChecklist() {
   const [open, setOpen] = useState(false);
   const [checks, setChecks] = useState<boolean[]>(loadChecklist);
-
   const completed = checks.filter(Boolean).length;
   const progress = (completed / CHECKLIST_ITEMS.length) * 100;
 
@@ -152,7 +162,6 @@ function InstallationChecklist() {
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
         )}
       </button>
-
       <div className="px-4 pb-1">
         <Progress
           data-ocid="guidance.checklist.progress"
@@ -160,7 +169,6 @@ function InstallationChecklist() {
           className="h-2"
         />
       </div>
-
       {open && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -179,11 +187,7 @@ function InstallationChecklist() {
               />
               <Label
                 htmlFor={`check-${idx}`}
-                className={`text-sm cursor-pointer leading-snug ${
-                  checks[idx]
-                    ? "line-through text-muted-foreground"
-                    : "text-foreground"
-                }`}
+                className={`text-sm cursor-pointer leading-snug ${checks[idx] ? "line-through text-muted-foreground" : "text-foreground"}`}
               >
                 {item}
               </Label>
@@ -196,8 +200,7 @@ function InstallationChecklist() {
             className="text-muted-foreground text-xs h-7 mt-1"
             onClick={reset}
           >
-            <RotateCcw className="w-3 h-3 mr-1" />
-            Reset
+            <RotateCcw className="w-3 h-3 mr-1" /> Reset
           </Button>
         </motion.div>
       )}
@@ -274,9 +277,109 @@ export function GuidancePage({
         />
       </motion.div>
 
-      {/* Feature 5: Best Time of Day */}
+      {/* V11-11: Polarization Advisor */}
+      <div className="mx-2">
+        <PolarizationAdvisor nearestTower={nearestTower} />
+      </div>
+
+      {/* V11-12: Fresnel Zone Calculator */}
+      <div className="mx-2">
+        <FresnelZoneCalculator />
+      </div>
+
+      {/* V11-13: Antenna Gain Comparator */}
+      <div className="mx-2">
+        <AntennaGainComparator rssi={rssi} />
+      </div>
+
+      {/* V11-14: Connector Type Guide */}
+      <div className="mx-2">
+        <ConnectorTypeGuide />
+      </div>
+
+      {/* V11-15: Mounting Angle Memory */}
+      <div className="mx-2">
+        <MountingAngleMemory />
+      </div>
+
+      {/* V11-16: Wind Load Estimator */}
+      <div className="mx-2">
+        <WindLoadEstimator />
+      </div>
+
+      {/* V11-17: Signal Budget Planner */}
+      <div className="mx-2">
+        <SignalBudgetPlanner />
+      </div>
+
+      {/* V11-18: Grounding Guide */}
+      <div className="mx-2">
+        <GroundingGuide />
+      </div>
+
+      {/* V11-19: Coax Cable Health Checker */}
+      <div className="mx-2">
+        <CoaxCableHealthChecker />
+      </div>
+
+      {/* V11-20: Installation Cost Estimator */}
+      <div className="mx-2">
+        <InstallationCostEstimator />
+      </div>
+
+      {/* Signal Prediction */}
+      <div className="mx-2">
+        <SignalPredictionCard />
+      </div>
+
+      {/* Best Time of Day */}
       <div className="mx-2">
         <BestTimeCard />
+      </div>
+
+      {/* Weather Impact */}
+      <div className="mx-2">
+        <WeatherImpactCard />
+      </div>
+
+      {/* Wind */}
+      <div className="mx-2">
+        <WindCard userPosition={userPosition} />
+      </div>
+
+      {/* Sun Position */}
+      <div className="mx-2">
+        <SunPositionCard userPosition={userPosition} antennaBearing={bearing} />
+      </div>
+
+      {/* Antenna Angle Calculator */}
+      <div className="mx-2">
+        <AntennaAngleCalculator />
+      </div>
+
+      {/* 3D Azimuth + Elevation Plotter */}
+      <div className="mx-2">
+        <AzimuthElevationPlotter bearing={bearing} distanceKm={distanceKm} />
+      </div>
+
+      {/* Cable Loss Calculator */}
+      <div className="mx-2">
+        <CableLossCalculator />
+      </div>
+
+      {/* Antenna Wizard */}
+      <div className="mx-2">
+        <AntennaWizard />
+      </div>
+
+      {/* Height Optimizer */}
+      <div className="mx-2">
+        <HeightOptimizer distanceKm={distanceKm} />
+      </div>
+
+      {/* APN Reset Guide */}
+      <div className="mx-2">
+        <ApnResetGuide />
       </div>
 
       <div className="mx-2">
@@ -295,6 +398,15 @@ export function GuidancePage({
         </Button>
       </div>
 
+      <div className="mx-2">
+        <SavedProfiles
+          latitude={userPosition.latitude}
+          longitude={userPosition.longitude}
+          bearing={bearing}
+          rssi={rssi}
+        />
+      </div>
+
       <div className="mx-2 bg-card rounded-2xl p-4 border border-border shadow-card">
         <h3 className="font-bold text-base text-foreground mb-4">
           Saved Positions
@@ -306,7 +418,6 @@ export function GuidancePage({
         />
       </div>
 
-      {/* Feature 8: Installation Checklist */}
       <div className="mx-2">
         <InstallationChecklist />
       </div>

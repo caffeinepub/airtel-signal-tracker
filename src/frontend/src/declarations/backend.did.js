@@ -8,6 +8,33 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const SignalQuality = IDL.Variant({
+  'Good' : IDL.Null,
+  'None' : IDL.Null,
+  'Weak' : IDL.Null,
+  'Excellent' : IDL.Null,
+});
+export const TowerStatusLog = IDL.Record({
+  'latencyMs' : IDL.Nat,
+  'timestamp' : IDL.Int,
+  'towerName' : IDL.Text,
+  'reachable' : IDL.Bool,
+});
+export const CommunitySignalReport = IDL.Record({
+  'id' : IDL.Nat,
+  'latitude' : IDL.Float64,
+  'quality' : SignalQuality,
+  'note' : IDL.Opt(IDL.Text),
+  'longitude' : IDL.Float64,
+  'timestamp' : IDL.Int,
+});
+export const CoverageGapReport = IDL.Record({
+  'id' : IDL.Nat,
+  'latitude' : IDL.Float64,
+  'description' : IDL.Text,
+  'longitude' : IDL.Float64,
+  'timestamp' : IDL.Int,
+});
 export const SignalPosition = IDL.Record({
   'latitude' : IDL.Float64,
   'compassHeading' : IDL.Float64,
@@ -25,14 +52,38 @@ export const Tower = IDL.Record({
 });
 
 export const idlService = IDL.Service({
+  'addCommunitySignalReport' : IDL.Func(
+      [IDL.Float64, IDL.Float64, SignalQuality, IDL.Opt(IDL.Text)],
+      [IDL.Nat],
+      [],
+    ),
+  'addCoverageGapReport' : IDL.Func(
+      [IDL.Float64, IDL.Float64, IDL.Text],
+      [IDL.Nat],
+      [],
+    ),
   'addTower' : IDL.Func([IDL.Text, IDL.Text, IDL.Float64, IDL.Float64], [], []),
+  'addTowerStatusLog' : IDL.Func([IDL.Text, IDL.Bool, IDL.Nat], [IDL.Nat], []),
+  'clearCommunitySignalReports' : IDL.Func([], [], []),
+  'clearOldTowerStatusLogs' : IDL.Func([IDL.Nat], [], []),
   'clearSignalPositions' : IDL.Func([], [], []),
   'getAllAppSettings' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
       ['query'],
     ),
+  'getAllTowerStatusLogs' : IDL.Func([], [IDL.Vec(TowerStatusLog)], ['query']),
   'getAppSetting' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], ['query']),
+  'getCommunitySignalReports' : IDL.Func(
+      [],
+      [IDL.Vec(CommunitySignalReport)],
+      ['query'],
+    ),
+  'getCoverageGapReports' : IDL.Func(
+      [],
+      [IDL.Vec(CoverageGapReport)],
+      ['query'],
+    ),
   'getSignalPositions' : IDL.Func([], [IDL.Vec(SignalPosition)], ['query']),
   'getTowerByName' : IDL.Func([IDL.Text], [IDL.Opt(Tower)], ['query']),
   'getTowers' : IDL.Func([], [IDL.Vec(Tower)], ['query']),
@@ -55,6 +106,33 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const SignalQuality = IDL.Variant({
+    'Good' : IDL.Null,
+    'None' : IDL.Null,
+    'Weak' : IDL.Null,
+    'Excellent' : IDL.Null,
+  });
+  const TowerStatusLog = IDL.Record({
+    'latencyMs' : IDL.Nat,
+    'timestamp' : IDL.Int,
+    'towerName' : IDL.Text,
+    'reachable' : IDL.Bool,
+  });
+  const CommunitySignalReport = IDL.Record({
+    'id' : IDL.Nat,
+    'latitude' : IDL.Float64,
+    'quality' : SignalQuality,
+    'note' : IDL.Opt(IDL.Text),
+    'longitude' : IDL.Float64,
+    'timestamp' : IDL.Int,
+  });
+  const CoverageGapReport = IDL.Record({
+    'id' : IDL.Nat,
+    'latitude' : IDL.Float64,
+    'description' : IDL.Text,
+    'longitude' : IDL.Float64,
+    'timestamp' : IDL.Int,
+  });
   const SignalPosition = IDL.Record({
     'latitude' : IDL.Float64,
     'compassHeading' : IDL.Float64,
@@ -72,18 +150,50 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
+    'addCommunitySignalReport' : IDL.Func(
+        [IDL.Float64, IDL.Float64, SignalQuality, IDL.Opt(IDL.Text)],
+        [IDL.Nat],
+        [],
+      ),
+    'addCoverageGapReport' : IDL.Func(
+        [IDL.Float64, IDL.Float64, IDL.Text],
+        [IDL.Nat],
+        [],
+      ),
     'addTower' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Float64, IDL.Float64],
         [],
         [],
       ),
+    'addTowerStatusLog' : IDL.Func(
+        [IDL.Text, IDL.Bool, IDL.Nat],
+        [IDL.Nat],
+        [],
+      ),
+    'clearCommunitySignalReports' : IDL.Func([], [], []),
+    'clearOldTowerStatusLogs' : IDL.Func([IDL.Nat], [], []),
     'clearSignalPositions' : IDL.Func([], [], []),
     'getAllAppSettings' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
         ['query'],
       ),
+    'getAllTowerStatusLogs' : IDL.Func(
+        [],
+        [IDL.Vec(TowerStatusLog)],
+        ['query'],
+      ),
     'getAppSetting' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], ['query']),
+    'getCommunitySignalReports' : IDL.Func(
+        [],
+        [IDL.Vec(CommunitySignalReport)],
+        ['query'],
+      ),
+    'getCoverageGapReports' : IDL.Func(
+        [],
+        [IDL.Vec(CoverageGapReport)],
+        ['query'],
+      ),
     'getSignalPositions' : IDL.Func([], [IDL.Vec(SignalPosition)], ['query']),
     'getTowerByName' : IDL.Func([IDL.Text], [IDL.Opt(Tower)], ['query']),
     'getTowers' : IDL.Func([], [IDL.Vec(Tower)], ['query']),
